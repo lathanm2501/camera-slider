@@ -1,0 +1,320 @@
+================================================================================
+  CAMERA SLIDER  —  ASCII WIRING DIAGRAM  —  v1.0
+================================================================================
+
+                           ARDUINO UNO
+                    ┌──────────────────────┐
+                    │                      │
+          EC11 CLK ─┤ D2          A5 (SCL) ├─ OLED SCL
+           EC11 DT ─┤ D3          A4 (SDA) ├─ OLED SDA
+           EC11 SW ─┤ D4          A3       ├─ (reserved)
+        BTN BACK   ─┤ D5          A2       ├─ BTN E-STOP
+        BTN CONFIRM─┤ D6          A1       ├─ BTN RIGHT
+        IR RECV    ─┤ D7          A0       ├─ BTN LEFT
+        (reserved) ─┤ D8                   │
+       TMC2209 STEP─┤ D9          5V       ├─ EC11 VCC
+        TMC2209 DIR─┤ D10         5V       ├─ IR VCC
+         TMC2209 EN─┤ D11         3.3V     ├─ OLED VCC
+       ENDSTOP LEFT─┤ D12         GND      ├─ Common GND
+      ENDSTOP RIGHT─┤ D13                  │
+                    │         USB          │
+                    └──────────────────────┘
+
+================================================================================
+  I2C BUS  (shared SDA / SCL)
+================================================================================
+
+   Arduino A4 (SDA) ──────────────────── OLED SDA
+   Arduino A5 (SCL) ──────────────────── OLED SCL
+   Arduino 3.3V     ──────────────────── OLED VCC
+   Arduino GND      ──────────────────── OLED GND
+
+   OLED I2C address: 0x3C  (try 0x3D if display does not initialise)
+
+================================================================================
+  EC11 ROTARY ENCODER  (mounted on OLED board)
+================================================================================
+
+   EC11 CLK ──────────────────────────── Arduino D2  (interrupt)
+   EC11 DT  ──────────────────────────── Arduino D3
+   EC11 SW  ──────────────────────────── Arduino D4
+   EC11 VCC ──────────────────────────── Arduino 5V
+   EC11 GND ──────────────────────────── GND
+
+================================================================================
+  ENCODER BOARD BUTTONS  (mounted on OLED board)
+================================================================================
+
+   BACK btn    ── one leg ── Arduino D5
+               └─ other leg ─ GND
+
+   CONFIRM btn ── one leg ── Arduino D6
+               └─ other leg ─ GND
+
+================================================================================
+  IR RECEIVER MODULE
+================================================================================
+
+   IR DATA ────────────────────────────── Arduino D7
+   IR VCC  ────────────────────────────── Arduino 5V
+   IR GND  ────────────────────────────── GND
+
+================================================================================
+  TMC2209 STEPPER DRIVER
+================================================================================
+
+                         TMC2209
+                  ┌────────────────┐
+   Arduino D9  ──┤ STEP      A1/M1├──┐  Stepper
+   Arduino D10 ──┤ DIR       A2/M2├──┤  Coil A
+   Arduino D11 ──┤ EN        B1/M3├──┤  Coil B
+   Arduino 5V  ──┤ VIO       B2/M4├──┘
+   12–24V PSU  ──┤ VM             │
+          GND  ──┤ GND            │
+                  └────────────────┘
+
+   MS1 / MS2 pads set microstepping:
+     MS1=GND  MS2=GND  →   8 microsteps
+     MS1=VIO  MS2=GND  →  16 microsteps  (firmware default)
+     MS1=GND  MS2=VIO  →  32 microsteps
+     MS1=VIO  MS2=VIO  →  64 microsteps
+
+================================================================================
+  NEMA 17 STEPPER MOTOR
+================================================================================
+
+   Motor Coil A+ ─────────────────────── TMC2209 A1 / M1
+   Motor Coil A- ─────────────────────── TMC2209 A2 / M2
+   Motor Coil B+ ─────────────────────── TMC2209 B1 / M3
+   Motor Coil B- ─────────────────────── TMC2209 B2 / M4
+
+   NOTE: If motor runs backwards, swap A+ and A- (or B+ and B-), not both.
+
+================================================================================
+  ENDSTOPS  (Normally Closed — NC)
+================================================================================
+
+   LEFT endstop  ── one leg ── Arduino D12
+                 └─ other leg ─ GND
+
+   RIGHT endstop ── one leg ── Arduino D13
+                 └─ other leg ─ GND
+
+   NC wiring: circuit is closed at rest, opens (LOW) when triggered.
+   A broken wire also triggers the stop — safer than NO wiring.
+
+================================================================================
+  EXTERNAL BUTTONS
+================================================================================
+
+   LEFT jog  btn ── one leg ── Arduino A0
+                 └─ other leg ─ GND        (tap=1mm step, hold=fast jog)
+
+   RIGHT jog btn ── one leg ── Arduino A1
+                 └─ other leg ─ GND        (tap=1mm step, hold=fast jog)
+
+   E-STOP    btn ── one leg ── Arduino A2
+                 └─ other leg ─ GND        (controlled decel + disable)
+
+   All use Arduino INPUT_PULLUP — no external resistor needed.
+
+================================================================================
+  POWER SUPPLY
+================================================================================
+
+   ┌─────────────────────────────────────────────────────┐
+   │  External PSU  (12–24 V)                            │
+   │                                                     │
+   │  +V ──────────────────────────────── TMC2209 VM     │
+   │  GND ─────────────────────────────── TMC2209 GND    │
+   │  GND ─────────────────────────────── Arduino GND    │
+   │                (star ground)                        │
+   └─────────────────────────────────────────────────────┘
+
+   Arduino powered via USB during development.
+   In standalone use, power Arduino from the PSU via Vin pin (7–12 V)
+   or regulated 5 V into the 5V pin.
+
+================================================================================
+  IR REMOTE BUTTON MAP
+================================================================================
+
+   IR_BTN_START_PAUSE  ── Start / Pause / Resume program
+   IR_BTN_CANCEL       ── Cancel paused program (returns to start)
+   IR_BTN_HOME         ── Run homing sequence
+   IR_BTN_FULL_LOOP    ── Select Full Loop program
+   IR_BTN_SLOT_1       ── Select user program slot 1
+   IR_BTN_SLOT_2       ── Select user program slot 2
+   IR_BTN_SLOT_3       ── Select user program slot 3
+   IR_BTN_SLOT_4       ── Select user program slot 4
+   IR_BTN_LEFT         ── Jog carriage left  (single slow step)
+   IR_BTN_RIGHT        ── Jog carriage right (single slow step)
+
+   To discover codes: upload IR_Learn.ino, open Serial Monitor at 115200 baud,
+   press each button, then paste hex codes into camera-slider.ino.
+
+================================================================================
+  COMPLETE PIN REFERENCE
+================================================================================
+
+   Pin   Dir     Connected To           Function
+   ────  ──────  ─────────────────────  ──────────────────────────────────────
+   D2    Input   EC11 CLK               Encoder channel A  (hardware interrupt)
+   D3    Input   EC11 DT                Encoder channel B
+   D4    Input   EC11 SW                Encoder push button
+   D5    Input   BACK button            Menu back / cancel
+   D6    Input   CONFIRM button         Menu select / confirm
+   D7    Input   IR receiver DATA       IR remote input
+   D8    —       Not connected          Reserved
+   D9    Output  TMC2209 STEP           Stepper step pulse
+   D10   Output  TMC2209 DIR            Stepper direction
+   D11   Output  TMC2209 EN             Stepper enable  (LOW = enabled)
+   D12   Input   Left endstop (NC)      Home / left limit
+   D13   Input   Right endstop (NC)     Right limit
+   A0    Input   LEFT jog button        Jog left
+   A1    Input   RIGHT jog button       Jog right
+   A2    Input   E-STOP button          Emergency stop
+   A3    —       Not connected          Reserved for future use
+   A4    I2C     OLED SDA               I2C data
+   A5    I2C     OLED SCL               I2C clock
+   5V    Power   EC11 VCC, IR VCC       Logic supply
+   3.3V  Power   OLED VCC               Display supply
+   GND   Power   All components         Common ground
+
+================================================================================
+  FIRMWARE FILES
+================================================================================
+
+   camera-slider/
+   ├── camera-slider.ino    Main firmware
+   └── IR_Learn/
+       └── IR_Learn.ino     IR button code discovery sketch
+
+
+================================================================================
+  HANDHELD CABLE  (controller board ↔ handheld enclosure)
+================================================================================
+
+  Cable spec : 16-conductor, 28AWG, flat ribbon, 2.54mm pitch
+  Length     : 60cm
+  Connectors : 2×8 IDC (16-pin) at both ends
+                 Handheld end  — IDC female (crimped onto ribbon)
+                 PCB end       — IDC shrouded male header (soldered)
+  Strain relief: IDC clip at each end
+
+  SIGNAL INTEGRITY — fit these at the PCB/controller end of the cable:
+
+    ENC_CLK        → 100nF ceramic capacitor to GND
+    ENC_DT         → 100nF ceramic capacitor to GND
+                     Prevents phantom encoder steps caused by cable noise.
+
+  WIRE ALLOCATION  (16 wires)
+
+    Wire   Signal        Direction    Notes
+    ─────  ────────────  ───────────  ──────────────────────────────
+    1      SDA           Bidirectional  I2C data  (OLED)
+    2      SCL           PCB → H      I2C clock  (OLED)
+    3      ENC_CLK       H → PCB      Encoder channel A  (+ 100nF to GND at PCB)
+    4      ENC_DT        H → PCB      Encoder channel B  (+ 100nF to GND at PCB)
+    5      ENC_SW        H → PCB      Encoder push button
+    6      BTN_BACK      H → PCB      Back button
+    7      BTN_CONF      H → PCB      Confirm button
+    8      BTN_LEFT      H → PCB      Left jog button
+    9      BTN_RIGHT     H → PCB      Right jog button
+    10     BTN_ESTOP     H → PCB      E-Stop button
+    11     3.3V          PCB → H      OLED VCC supply
+    12     5V            PCB → H      Encoder VCC supply
+    13     GND           Common       Signal ground
+    14     GND           Common       Power return
+    15     (spare)       —            Reserved
+    16     (spare)       —            Reserved
+
+  H = Handheld enclosure    PCB = Main controller board
+
+
+================================================================================
+  HANDHELD CABLE — OPTION B: DB15 (VGA CABLE)
+================================================================================
+
+  Cable spec : Standard VGA cable (DE-15), pre-made, 0.5m
+  Connectors : DB15 panel-mount chassis connectors at both ends
+                 Handheld end  — DB15 female chassis mount
+                 PCB end       — DB15 male chassis mount
+  Locking    : Thumbscrew or hex screw at each connector end
+
+  PIN ALLOCATION  (15 pins — pins 15 spare)
+
+    Pin   Signal        Direction    Notes
+    ────  ────────────  ───────────  ──────────────────────────────
+    1     SDA           Bidirectional  I2C data (OLED)
+    2     SCL           PCB → H      I2C clock (OLED)
+    3     ENC_CLK       H → PCB      Encoder A  (+ 100nF to GND at PCB)
+    4     ENC_DT        H → PCB      Encoder B  (+ 100nF to GND at PCB)
+    5     ENC_SW        H → PCB      Encoder push button
+    6     BTN_BACK      H → PCB      Back button
+    7     BTN_CONF      H → PCB      Confirm button
+    8     BTN_LEFT      H → PCB      Left jog button
+    9     BTN_RIGHT     H → PCB      Right jog button
+    10    BTN_ESTOP     H → PCB      E-Stop button
+    11    3.3V          PCB → H      OLED VCC supply
+    12    5V            PCB → H      Encoder VCC supply
+    13    GND           Common       Signal ground
+    14    GND           Common       Power return
+    15    (spare)       —            Reserved
+
+  COMPARED TO RIBBON CABLE OPTION:
+    Pro  : Pre-made cable, no crimping, locking screws, robust connector
+    Con  : Always verify continuity — some VGA cables omit certain pins
+
+  H = Handheld enclosure    PCB = Main controller board
+
+================================================================================
+  END OF DOCUMENT
+================================================================================
+
+================================================================================
+  HANDHELD CABLE — OPTION C: DB25 (SERIAL/PARALLEL CABLE)
+================================================================================
+
+  Cable spec : DB25 straight-through serial or parallel port cable
+  Connectors : DB25 panel-mount chassis connectors at both ends
+                 Handheld end  — DB25 female chassis mount
+                 PCB end       — DB25 male chassis mount
+  Locking    : Thumbscrew or hex screw at each connector end
+  Source     : Existing stock — old PC serial or parallel port cable
+               All 25 pins are always wired in these cables (guaranteed).
+
+  ⚠  Use a STRAIGHT-THROUGH cable, not a null-modem cable.
+     Verify pin-to-pin continuity before use.
+
+  PIN ALLOCATION  (14 of 25 pins used — 11 spares)
+
+    Pin   Signal        Direction      Notes
+    ────  ────────────  ─────────────  ──────────────────────────────
+    1     SDA           Bidirectional  I2C data (OLED)
+    2     SCL           PCB → H        I2C clock (OLED)
+    3     ENC_CLK       H → PCB        Encoder A  (+ 100nF to GND at PCB)
+    4     ENC_DT        H → PCB        Encoder B  (+ 100nF to GND at PCB)
+    5     ENC_SW        H → PCB        Encoder push button
+    6     BTN_BACK      H → PCB        Back button
+    7     BTN_CONF      H → PCB        Confirm button
+    8     BTN_LEFT      H → PCB        Left jog button
+    9     BTN_RIGHT     H → PCB        Right jog button
+    10    BTN_ESTOP     H → PCB        E-Stop button
+    11    3.3V          PCB → H        OLED VCC supply
+    12    5V            PCB → H        Encoder VCC supply
+    13    GND           Common         Signal ground
+    14    GND           Common         Power return
+    15–25 (spare)       —              Reserved for future use
+
+  COMPARED TO OTHER OPTIONS:
+    Pro  : All 25 pins guaranteed wired — no continuity surprises
+    Pro  : Likely already in your parts bin at zero cost
+    Pro  : 11 spare wires for future expansion
+    Con  : Connector body wider than DB15 (~55mm vs ~40mm)
+
+  H = Handheld enclosure    PCB = Main controller board
+
+================================================================================
+  END OF DOCUMENT
+================================================================================

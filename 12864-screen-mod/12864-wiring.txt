@@ -1,0 +1,313 @@
+================================================================================
+  CAMERA SLIDER  —  12864 SCREEN MOD  —  ASCII WIRING DIAGRAM  —  v1.0-12864
+================================================================================
+
+                           ARDUINO UNO
+                    ┌──────────────────────┐
+                    │                      │
+      EXP2-3 ENC A ─┤ D2          A5      ├─ EXP2-7  LCD CS
+      EXP2-5 ENC B ─┤ D3          A4      ├─ EXP1-7  NEOPIXEL
+   EXP1-2 ENC push ─┤ D4          A3      ├─ EXP1-4  LCD A0/RS
+       BTN RIGHT   ─┤ D5          A2      ├─ (free)
+    BTN PLAY/PAUSE ─┤ D6          A1      ├─ (free)
+       IR RECEIVER ─┤ D7          A0      ├─ BTN LEFT
+     EXP1-3 LCD RST─┤ D8                  │
+      TMC2209 STEP ─┤ D9          5V      ├─ EXP1-10 (Mini12864 VCC)
+       TMC2209 DIR ─┤ D10         5V      ├─ IR VCC
+      EXP2-6  MOSI ─┤ D11         GND     ├─ Common GND
+      Both endstops─┤ D12                  │
+       EXP2-2  SCK ─┤ D13                  │
+                    │         USB          │
+                    └──────────────────────┘
+
+  TMC2209 EN ──────────────────────────────── GND  (tied LOW — always enabled)
+
+================================================================================
+  MINI12864 EXP1  (10-pin IDC ribbon cable)
+================================================================================
+
+   EXP1 pin 2  (BTN_ENC)   ──────────── Arduino D4   encoder push
+   EXP1 pin 3  (LCD_RST)   ──────────── Arduino D8   display reset
+   EXP1 pin 4  (LCD_A0/RS) ──────────── Arduino A3   data/cmd select
+   EXP1 pin 5  (BTN_BACK)  ──────────── (not connected)
+   EXP1 pin 6  (BTN_KILL)  ──────────── (not connected)
+   EXP1 pin 7  (NEOPIXEL)  ──────────── Arduino A4   RGB backlight
+   EXP1 pin 8  (GND)       ──────────── GND
+   EXP1 pin 9  (KILL)      ──────────── (not connected)
+   EXP1 pin 10 (5V)        ──────────── 5V
+
+================================================================================
+  MINI12864 EXP2  (10-pin IDC ribbon cable)
+================================================================================
+
+   EXP2 pin 1  (MISO)      ──────────── (not connected — software SPI)
+   EXP2 pin 2  (SCK)       ──────────── Arduino D13  SPI clock
+   EXP2 pin 3  (ENC_CLK)   ──────────── Arduino D2   encoder A  (interrupt)
+   EXP2 pin 4  (SD_CS)     ──────────── (not connected)
+   EXP2 pin 5  (ENC_DT)    ──────────── Arduino D3   encoder B
+   EXP2 pin 6  (MOSI)      ──────────── Arduino D11  SPI data
+   EXP2 pin 7  (LCD_CS)    ──────────── Arduino A5   chip select
+   EXP2 pin 8  (GND)       ──────────── GND
+   EXP2 pin 9  (NC)        ──────────── (not connected)
+   EXP2 pin 10 (5V)        ──────────── (not connected — powered via EXP1)
+
+================================================================================
+  TMC2209 STEPPER DRIVER
+================================================================================
+
+                         TMC2209
+                  ┌────────────────┐
+   Arduino D9  ──┤ STEP      A1/M1├──┐  Stepper
+   Arduino D10 ──┤ DIR       A2/M2├──┤  Coil A
+          GND  ──┤ EN        B1/M3├──┤  Coil B
+   Arduino 5V  ──┤ VIO       B2/M4├──┘
+   12–24V PSU  ──┤ VM             │
+          GND  ──┤ GND            │
+                  └────────────────┘
+
+  EN is wired directly to GND — motor always energized.
+  Motor holds position when idle. To free-spin, power off PSU.
+
+================================================================================
+  ENDSTOPS  (both NC switches wired in parallel — one Arduino pin)
+================================================================================
+
+   Left  endstop  ──┐
+                     ├── one leg ── Arduino D12
+   Right endstop  ──┘
+   Both other legs ──────────────── GND
+
+   How direction identifies the triggered switch:
+     Carriage moving left  (speed < 0) → left  endstop triggered
+     Carriage moving right (speed > 0) → right endstop triggered
+
+================================================================================
+  EXTERNAL BUTTONS  (all active LOW — INPUT_PULLUP, connect to GND)
+================================================================================
+
+   LEFT jog
+     One leg ──────────────────── Arduino A0
+     Other leg ─────────────────── GND
+     Short press = 1 mm step left  |  Hold = fast continuous jog left
+
+   RIGHT jog
+     One leg ──────────────────── Arduino D5
+     Other leg ─────────────────── GND
+     Short press = 1 mm step right |  Hold = fast continuous jog right
+
+   PLAY / PAUSE
+     One leg ──────────────────── Arduino D6
+     Other leg ─────────────────── GND
+     Short press = start / pause / resume
+     Long press  = cancel program
+
+   E-STOP (encoder push — long press)
+     Built into Mini12864 encoder — no external button needed
+     Hold encoder push > 400 ms → controlled decel + disable + main menu
+
+================================================================================
+  IR RECEIVER MODULE
+================================================================================
+
+   IR DATA ────────────────────────── Arduino D7
+   IR VCC  ────────────────────────── Arduino 5V
+   IR GND  ────────────────────────── GND
+
+================================================================================
+  NEOPIXEL BACKLIGHT  (on Mini12864 board — driven via EXP1 pin 7)
+================================================================================
+
+   State            Colour    R    G    B
+   ───────────────  ────────  ───  ───  ───
+   Idle / menu      Green       0  180    0
+   Program running  Blue        0    0  180
+   Paused           Amber     200  120    0
+   Homing           White     200  200  200
+   E-Stop           Red       255    0    0
+
+================================================================================
+  POWER SUPPLY
+================================================================================
+
+   ┌──────────────────────────────────────────────────────┐
+   │  External PSU  (12–24 V DC)                          │
+   │                                                      │
+   │  +V ──────────────────────────────── TMC2209 VM      │
+   │  GND ─────────────────────────────── TMC2209 GND     │
+   │  GND ─────────────────────────────── Arduino GND     │
+   │  GND ─────────────────────────────── TMC2209 EN      │
+   │                (star ground)                         │
+   └──────────────────────────────────────────────────────┘
+
+   Arduino powered via USB during development.
+   In standalone use: power via Vin pin (7–12V) or regulated 5V into 5V pin.
+
+================================================================================
+  COMPLETE PIN REFERENCE
+================================================================================
+
+   Pin   Dir     Connected To             Function
+   ────  ──────  ───────────────────────  ───────────────────────────────────────
+   D2    Input   EXP2-3 ENC_CLK           Encoder A  (hardware interrupt)
+   D3    Input   EXP2-5 ENC_DT            Encoder B
+   D4    Input   EXP1-2 ENC_SW            Encoder push  (short=select, long=EStop)
+   D5    Input   RIGHT jog button          Short=1mm right, hold=fast right
+   D6    Input   PLAY/PAUSE button         Short=start/pause, hold=cancel
+   D7    Input   IR receiver DATA          IR remote  (NEC)
+   D8    Output  EXP1-3 LCD_RST           Display reset
+   D9    Output  TMC2209 STEP             Step pulse
+   D10   Output  TMC2209 DIR              Direction
+   D11   Output  EXP2-6 MOSI             SPI data  (software SPI)
+   D12   Input   Both endstops (parallel) Single endstop pin  (NC in parallel)
+   D13   Output  EXP2-2 SCK              SPI clock  (software SPI)
+   A0    Input   LEFT jog button           Short=1mm left, hold=fast left
+   A1    —       Free                      Available for future use
+   A2    —       Free                      Available for future use
+   A3    Output  EXP1-4 LCD_A0           Display RS
+   A4    Output  EXP1-7 NeoPixel         RGB backlight data
+   A5    Output  EXP2-7 LCD_CS           Display chip select
+   5V    Power   EXP1-10, IR VCC          Logic supply
+   GND   Power   All + TMC2209 EN         Common ground + EN tie-down
+
+
+================================================================================
+  HANDHELD CABLE  (controller board ↔ handheld enclosure)
+================================================================================
+
+  Cable spec : 16-conductor, 28AWG, flat ribbon, 2.54mm pitch
+  Length     : 60cm
+  Connectors : 2×8 IDC (16-pin) at both ends
+                 Handheld end  — IDC female (crimped onto ribbon)
+                 PCB end       — IDC shrouded male header (soldered)
+  Strain relief: IDC clip at each end
+
+  SIGNAL INTEGRITY — fit these at the PCB/controller end of the cable:
+
+    NeoPixel data  → 470Ω resistor in series (on PCB, close to output pin)
+                     Damps reflections on the 60cm data run.
+
+    ENC_CLK        → 100nF ceramic capacitor to GND
+    ENC_DT         → 100nF ceramic capacitor to GND
+                     Prevents phantom encoder steps caused by cable noise.
+
+  WIRE ALLOCATION  (16 wires)
+
+    Wire   Signal          Direction    Notes
+    ─────  ──────────────  ───────────  ──────────────────────────────
+    1      ENC_CLK         H → PCB      Encoder channel A  (+ 100nF to GND at PCB)
+    2      ENC_DT          H → PCB      Encoder channel B  (+ 100nF to GND at PCB)
+    3      ENC_SW          H → PCB      Encoder push button
+    4      LCD_MOSI        PCB → H      SPI data
+    5      LCD_SCK         PCB → H      SPI clock
+    6      LCD_CS          PCB → H      SPI chip select
+    7      LCD_RST         PCB → H      Display reset
+    8      LCD_A0          PCB → H      Display data/command
+    9      NEOPIXEL        PCB → H      RGB backlight  (+ 470Ω series at PCB)
+    10     BTN_LEFT        H → PCB      Left jog button
+    11     BTN_RIGHT       H → PCB      Right jog button
+    12     BTN_PLAY/PAUSE  H → PCB      Play/pause button
+    13     5V              PCB → H      Logic supply for Mini12864 + encoder
+    14     GND             Common       Signal ground
+    15     GND             Common       Power return (separate for noise isolation)
+    16     (spare)         —            Reserved for future use
+
+  H = Handheld enclosure    PCB = Main controller board
+
+
+================================================================================
+  HANDHELD CABLE — OPTION B: DB15 (VGA CABLE)
+================================================================================
+
+  Cable spec : Standard VGA cable (DE-15), pre-made, 0.5m
+  Connectors : DB15 panel-mount chassis connectors at both ends
+                 Handheld end  — DB15 female chassis mount
+                 PCB end       — DB15 male chassis mount
+  Locking    : Thumbscrew or hex screw at each connector end
+  Source     : Any VGA cable 0.5m — extremely common, low cost
+
+  PIN ALLOCATION  (15 pins — pin 15 doubles as extra GND)
+
+    Pin   Signal          Direction    Notes
+    ────  ──────────────  ───────────  ──────────────────────────────
+    1     ENC_CLK         H → PCB      Encoder A  (+ 100nF to GND at PCB)
+    2     ENC_DT          H → PCB      Encoder B  (+ 100nF to GND at PCB)
+    3     ENC_SW          H → PCB      Encoder push button
+    4     LCD_MOSI        PCB → H      SPI data
+    5     LCD_SCK         PCB → H      SPI clock
+    6     LCD_CS          PCB → H      SPI chip select
+    7     LCD_RST         PCB → H      Display reset
+    8     LCD_A0          PCB → H      Display data/command
+    9     NEOPIXEL        PCB → H      RGB backlight (+ 470 Ohm series at PCB)
+    10    BTN_LEFT        H → PCB      Left jog button
+    11    BTN_RIGHT       H → PCB      Right jog button
+    12    BTN_PLAY/PAUSE  H → PCB      Play/pause button
+    13    5V              PCB → H      Logic supply for Mini12864 + encoder
+    14    GND             Common       Signal ground
+    15    GND             Common       Power return / extra GND (pin doubled)
+
+  COMPARED TO RIBBON CABLE OPTION:
+    Pro  : Pre-made cable, no crimping, locking screws, more robust connector
+    Pro  : Panel-mount connectors suit an enclosure design well
+    Con  : 15 pins vs 16 — one fewer spare wire
+    Con  : VGA cable wiring varies by manufacturer — verify continuity
+           before use (some VGA cables omit certain pins)
+    Note : Always test with a continuity checker before first use
+
+  H = Handheld enclosure    PCB = Main controller board
+
+================================================================================
+  END OF DOCUMENT
+================================================================================
+
+================================================================================
+  HANDHELD CABLE — OPTION C: DB25 (SERIAL/PARALLEL CABLE)
+================================================================================
+
+  Cable spec : DB25 straight-through serial or parallel port cable
+  Connectors : DB25 panel-mount chassis connectors at both ends
+                 Handheld end  — DB25 female chassis mount
+                 PCB end       — DB25 male chassis mount
+  Locking    : Thumbscrew or hex screw at each connector end
+  Source     : Existing stock — old PC serial or parallel port cable
+               All 25 pins are always wired in these cables (guaranteed).
+
+  ⚠  Use a STRAIGHT-THROUGH cable, not a null-modem cable.
+     Verify pin-to-pin continuity before use.
+     Male-to-female is most common for serial; male-to-male for parallel.
+     Either works — just map your pin assignments consistently at both ends.
+
+  PIN ALLOCATION  (16 of 25 pins used — 9 spares)
+
+    Pin   Signal          Direction    Notes
+    ────  ──────────────  ───────────  ──────────────────────────────
+    1     ENC_CLK         H → PCB      Encoder A  (+ 100nF to GND at PCB)
+    2     ENC_DT          H → PCB      Encoder B  (+ 100nF to GND at PCB)
+    3     ENC_SW          H → PCB      Encoder push button
+    4     LCD_MOSI        PCB → H      SPI data
+    5     LCD_SCK         PCB → H      SPI clock
+    6     LCD_CS          PCB → H      SPI chip select
+    7     LCD_RST         PCB → H      Display reset
+    8     LCD_A0          PCB → H      Display data/command
+    9     NEOPIXEL        PCB → H      RGB backlight (+ 470 Ohm series at PCB)
+    10    BTN_LEFT        H → PCB      Left jog button
+    11    BTN_RIGHT       H → PCB      Right jog button
+    12    BTN_PLAY/PAUSE  H → PCB      Play/pause button
+    13    5V              PCB → H      Logic supply for Mini12864 + encoder
+    14    GND             Common       Signal ground
+    15    GND             Common       Power return
+    16    GND             Common       Extra GND (recommended for noise isolation)
+    17–25 (spare)         —            Reserved for future use
+
+  COMPARED TO OTHER OPTIONS:
+    Pro  : All 25 pins guaranteed wired — no continuity surprises
+    Pro  : Likely already in your parts bin at zero cost
+    Pro  : 9 spare wires for future expansion
+    Pro  : Locking screws, robust connector, easy to panel mount
+    Con  : Connector body is wider than DB15 (~55mm vs ~40mm)
+           May influence enclosure width
+
+  H = Handheld enclosure    PCB = Main controller board
+
+================================================================================
+  END OF DOCUMENT
+================================================================================

@@ -1,0 +1,247 @@
+================================================================================
+  CAMERA SLIDER  —  12864 SCREEN MOD  —  PIN REFERENCE  —  v1.0-12864
+================================================================================
+
+                           ARDUINO UNO
+                    ┌──────────────────────┐
+                    │                      │
+      EXP2-3 ENC A ─┤ D2          A5      ├─ EXP2-7  LCD CS
+      EXP2-5 ENC B ─┤ D3          A4      ├─ EXP1-7  NEOPIXEL
+      EXP1-2 ENC SW─┤ D4          A3      ├─ EXP1-4  LCD A0/RS
+      BTN RIGHT    ─┤ D5          A2      ├─ (free)
+      BTN PLAY/PAU ─┤ D6          A1      ├─ (free)
+       IR RECEIVER ─┤ D7          A0      ├─ BTN LEFT
+      EXP1-3 RST   ─┤ D8                  │
+       TMC2209 STEP─┤ D9          5V      ├─ EXP1-10 / IR VCC
+        TMC2209 DIR─┤ D10         GND     ├─ Common GND
+       EXP2-6  MOSI─┤ D11                 │
+      Both endstops─┤ D12                 │
+       EXP2-2   SCK─┤ D13                 │
+                    │         USB          │
+                    └──────────────────────┘
+
+  TMC2209 EN → tied directly to GND (always enabled, no Arduino pin needed)
+  Both endstops (NC) wired in parallel → D12 (direction identifies which)
+
+================================================================================
+  COMPLETE PIN TABLE
+================================================================================
+
+  DIGITAL PINS
+  ─────────────────────────────────────────────────────────────────────────────
+  Pin   Connected To              Function
+  ────  ────────────────────────  ──────────────────────────────────────────────
+  D0    (Serial RX)               Do not connect — used by USB/Serial
+  D1    (Serial TX)               Do not connect — used by USB/Serial
+  D2    EXP2-3 ENC_CLK            Encoder channel A  (hardware interrupt)
+  D3    EXP2-5 ENC_DT             Encoder channel B
+  D4    EXP1-2 ENC_SW             Encoder push
+                                   Short press = select / confirm
+                                   Long press  = E-Stop (decel + disable)
+  D5    RIGHT jog button           Short press = 1 mm step right
+                                   Hold        = continuous fast jog right
+  D6    PLAY/PAUSE button          Short press = start / pause / resume
+                                   Hold        = cancel program
+  D7    IR Receiver DATA           Infrared remote input  (NEC protocol)
+  D8    EXP1-3 LCD_RST             Display reset
+  D9    TMC2209 STEP               Stepper step pulse
+  D10   TMC2209 DIR                Stepper direction
+  D11   EXP2-6 MOSI               SPI data to display  (software SPI)
+  D12   Both endstops in parallel  Single endstop pin — NC switches in parallel
+                                   Travel direction identifies which end triggered
+  D13   EXP2-2 SCK                SPI clock  (software SPI)
+
+  ANALOG PINS  (used as digital I/O)
+  ─────────────────────────────────────────────────────────────────────────────
+  Pin   Connected To              Function
+  ────  ────────────────────────  ──────────────────────────────────────────────
+  A0    LEFT jog button            Short press = 1 mm step left
+                                   Hold        = continuous fast jog left
+  A1    (free)                     Available for future use
+  A2    (free)                     Available for future use
+  A3    EXP1-4 LCD_A0             Display data / command select  (RS pin)
+  A4    EXP1-7 NeoPixel data      WS2812 RGB backlight  (2 LEDs)
+  A5    EXP2-7 LCD_CS             Display chip select  (SPI)
+
+  POWER
+  ─────────────────────────────────────────────────────────────────────────────
+  Rail  Connected To              Notes
+  ────  ────────────────────────  ──────────────────────────────────────────────
+  5V    EXP1-10, IR VCC           Logic supply to Mini12864 and IR module
+  GND   All components            Common ground — star topology recommended
+        TMC2209 EN                EN tied to GND permanently — always enabled
+  Vin   External PSU (7–12V)      Optional standalone power
+
+================================================================================
+  BUTTON BEHAVIOUR SUMMARY
+================================================================================
+
+  Button          Short Press                Long Press (>400 ms)
+  ──────────────  ─────────────────────────  ────────────────────────────────
+  Encoder (ENC)   Select / confirm item      E-Stop — decel + disable motors
+  LEFT            1 mm slow step left        Fast continuous jog left
+  RIGHT           1 mm slow step right       Fast continuous jog right
+  PLAY/PAUSE      Start / Pause / Resume     Cancel program
+
+  Encoder turn:   Scroll menu / adjust value
+  IR remote:      See IR function map below
+
+================================================================================
+  MINI12864 EXP1 CONNECTOR  (10-pin IDC)
+================================================================================
+
+  EXP1 Pin   Signal        Arduino Pin   Function
+  ─────────  ────────────  ───────────   ───────────────────────────────────────
+  1          BEEPER        —             Not connected
+  2          BTN_ENC       D4            Encoder push (select / E-Stop)
+  3          LCD_RST       D8            Display reset
+  4          LCD_A0 / RS   A3            Data / command select
+  5          —             —             Not connected (BTN_BACK removed)
+  6          —             —             Not connected (BTN_CONF removed)
+  7          NEOPIXEL      A4            WS2812 RGB backlight data
+  8          GND           GND           Ground
+  9          KILL          —             Not connected
+  10         5V            5V            Logic supply
+
+================================================================================
+  MINI12864 EXP2 CONNECTOR  (10-pin IDC)
+================================================================================
+
+  EXP2 Pin   Signal        Arduino Pin   Function
+  ─────────  ────────────  ───────────   ───────────────────────────────────────
+  1          MISO          —             Not connected  (software SPI, MISO unused)
+  2          SCK           D13           SPI clock
+  3          ENC_CLK       D2            Encoder channel A  (interrupt)
+  4          SD_CS         —             Not connected  (no SD card)
+  5          ENC_DT        D3            Encoder channel B
+  6          MOSI          D11           SPI data to display
+  7          LCD_CS        A5            Display chip select
+  8          GND           GND           Ground
+  9          NC            —             Not connected
+  10         5V            5V            (optional, already via EXP1)
+
+================================================================================
+  ENDSTOP WIRING  (both switches in parallel)
+================================================================================
+
+  Left endstop  (NC) ──┐
+                        ├── D12 ── Arduino
+  Right endstop (NC) ──┘
+  Both other legs ─────── GND
+
+  How it works:
+    Both switches are Normally Closed (NC). At rest the circuit is closed.
+    When either switch is triggered, the circuit opens → D12 reads LOW.
+    The firmware knows which end was hit by reading stepper direction:
+      stepper.speed() < 0  →  moving left  →  left endstop triggered
+      stepper.speed() > 0  →  moving right →  right endstop triggered
+
+================================================================================
+  TMC2209 WIRING
+================================================================================
+
+  TMC2209 Pin   Arduino / Source    Notes
+  ───────────   ──────────────────  ───────────────────────────────────────────
+  STEP          D9                  Step pulse
+  DIR           D10                 Direction
+  EN            GND (direct)        Tied LOW permanently — always enabled
+                                    Motor holds position when idle (no free-spin)
+  VIO           5V                  Logic supply
+  VM            12–24V PSU          Motor power supply
+  GND           GND                 Logic and power ground joined at PSU
+  A1/M1         Motor coil A+       }
+  A2/M2         Motor coil A-       } NEMA 17 wiring
+  B1/M3         Motor coil B+       }
+  B2/M4         Motor coil B-       }
+
+  MS1/MS2 microstepping pads (on TMC2209 module):
+    MS1=GND  MS2=GND  →   8 microsteps
+    MS1=VIO  MS2=GND  →  16 microsteps  ← firmware default (STEPS_PER_MM=80)
+    MS1=GND  MS2=VIO  →  32 microsteps
+    MS1=VIO  MS2=VIO  →  64 microsteps
+
+================================================================================
+  NEOPIXEL BACKLIGHT COLOURS
+================================================================================
+
+  State                  Colour    R    G    B
+  ─────────────────────  ────────  ───  ───  ───
+  Idle / menu            Green       0  180    0
+  Program running        Blue        0    0  180
+  Paused                 Amber     200  120    0
+  Homing                 White     200  200  200
+  E-Stop / fault         Red       255    0    0
+
+================================================================================
+  IR REMOTE FUNCTION MAP
+================================================================================
+
+  Define                Function
+  ──────────────────────────────────────────────────────────────────────────────
+  IR_BTN_START_PAUSE    Start / pause / resume program
+  IR_BTN_CANCEL         Cancel paused program
+  IR_BTN_HOME           Run homing sequence
+  IR_BTN_FULL_LOOP      Select Full Loop program
+  IR_BTN_SLOT_1         Select user program slot 1
+  IR_BTN_SLOT_2         Select user program slot 2
+  IR_BTN_SLOT_3         Select user program slot 3
+  IR_BTN_SLOT_4         Select user program slot 4
+  IR_BTN_LEFT           Jog left  (single slow step)
+  IR_BTN_RIGHT          Jog right (single slow step)
+
+  Upload IR_Learn.ino and open Serial Monitor at 115200 baud to discover codes.
+  Paste hex codes into IR_BTN_* defines at the top of 12864-screen-mod.ino.
+
+================================================================================
+  WHAT CHANGED FROM ORIGINAL  (camera-slider v1.0)
+================================================================================
+
+  Item              Original                    This fork
+  ────────────────  ──────────────────────────  ──────────────────────────────
+  Display           SH1106 OLED  I2C            Mini12864  UC1701  SPI
+  Encoder           External EC11 module        Built into Mini12864
+  BTN_BACK (D5)     Back button                 RIGHT jog button
+  BTN_CONF (D6)     Confirm button              PLAY/PAUSE button
+  E-Stop            Dedicated panel button      Encoder long press
+  TMC2209 EN        D11 → A2 (interim)          Tied to GND permanently
+  Endstops          Two pins  D12 + D13         One pin  D12  (parallel NC)
+  D13               Right endstop               SPI SCK  (endstop moved off)
+  A0                E-Stop button               LEFT jog button
+  A1                LEFT jog button             Free
+  A2                TMC2209 EN                  Free
+  A3                Reserved                    LCD A0/RS
+  A4                OLED SDA                    NeoPixel data
+  A5                OLED SCL                    LCD CS
+  Back navigation   Physical BACK button        < Back item in each menu
+  Confirm screens   BACK/CONF buttons           Scrollable Yes / No items
+  Pause screen      BACK/CONF buttons           Scrollable Resume / Cancel
+
+  Removed components:
+    SH1106 OLED module
+    External EC11 encoder + button board
+    Dedicated E-Stop panel button
+    BTN_BACK panel button
+    BTN_CONF panel button
+    Pull-down/up resistor on EN pin
+    Wire.h  (I2C no longer used)
+
+  Added components:
+    BIGTREETECH MINI12864 V2.0
+    Adafruit NeoPixel library
+
+================================================================================
+  FIRMWARE FILES
+================================================================================
+
+  12864-screen-mod/
+  ├── 12864-screen-mod.ino        Main firmware
+  ├── 12864-pin-reference.txt     This file
+  ├── 12864-wiring.txt            ASCII wiring diagram
+  ├── 12864-wiring.pdf            Formatted wiring reference
+  ├── 12864-bom.xlsx              Bill of materials
+  └── IR_Learn/
+      └── IR_Learn.ino            IR button code discovery sketch
+
+================================================================================
+  END OF DOCUMENT
+================================================================================

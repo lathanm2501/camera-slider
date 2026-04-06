@@ -1,0 +1,260 @@
+================================================================================
+  CAMERA SLIDER  —  ESP32 WiFi Mod  —  ASCII WIRING  —  v1.0-ESP32
+================================================================================
+
+                         ESP32 DevKit v1  (38-pin)
+                    ┌─────────────────────────────┐
+                    │                             │
+    EXP2-3 ENC CLK ─┤ GPIO34*        GPIO23      ├─ EXP2-6 LCD MOSI
+     EXP2-5 ENC DT ─┤ GPIO35*        GPIO18      ├─ EXP2-2 LCD SCK
+    EXP1-2  ENC SW ─┤ GPIO32         GPIO5       ├─ EXP2-7 LCD CS
+    EXP1-3 LCD RST ─┤ GPIO33         GPIO17      ├─ TMC2209 DIR
+    EXP1-4  LCD A0 ─┤ GPIO25         GPIO16      ├─ TMC2209 STEP
+    EXP1-7 NEOPIX  ─┤ GPIO26                     │
+    BTN LEFT       ─┤ GPIO27         GND         ├─ Common GND
+    BTN RIGHT      ─┤ GPIO14         GND         ├─ TMC2209 EN (always on)
+    BTN PLAY/PAUSE ─┤ GPIO12         3.3V        ├─ Pullup resistors
+    END LEFT*      ─┤ GPIO36         5V/VIN      ├─ EXP1-10 (Mini12864 VCC)
+    END RIGHT*     ─┤ GPIO39                     │
+                    └─────────────────────────────┘
+
+  * Input-only GPIO — NO internal pullup.
+    Wire 10kΩ from each of these pins to 3.3V.
+
+================================================================================
+  MINI12864 CONNECTIONS
+================================================================================
+
+  EXP1 (10-pin IDC):
+    pin 2  BTN_ENC   ── GPIO 32   encoder push
+    pin 3  LCD_RST   ── GPIO 33   display reset
+    pin 4  LCD_A0    ── GPIO 25   data/command
+    pin 5  —         ── (NC)
+    pin 6  —         ── (NC)
+    pin 7  NEOPIXEL  ── GPIO 26   RGB backlight
+    pin 8  GND       ── GND
+    pin 10 5V        ── VIN (5V)
+
+  EXP2 (10-pin IDC):
+    pin 2  SCK        ── GPIO 18  SPI clock
+    pin 3  ENC_CLK   ── GPIO 34  encoder A  (+ 10kΩ to 3.3V)
+    pin 5  ENC_DT    ── GPIO 35  encoder B  (+ 10kΩ to 3.3V)
+    pin 6  MOSI      ── GPIO 23  SPI data
+    pin 7  LCD_CS    ── GPIO 5   chip select
+    pin 8  GND       ── GND
+
+================================================================================
+  PULLUP RESISTORS (required for input-only pins)
+================================================================================
+
+   GPIO 34 (ENC_CLK) ── 10kΩ ── 3.3V
+   GPIO 35 (ENC_DT)  ── 10kΩ ── 3.3V
+   GPIO 36 (END_LEFT) ── 10kΩ ── 3.3V
+   GPIO 39 (END_RIGHT)── 10kΩ ── 3.3V
+
+================================================================================
+  TMC2209 STEPPER DRIVER
+================================================================================
+
+                       TMC2209
+                ┌───────────────┐
+   GPIO 16   ──┤ STEP    A1/M1 ├──┐
+   GPIO 17   ──┤ DIR     A2/M2 ├──┤  NEMA 17
+   GND (tie) ──┤ EN      B1/M3 ├──┤
+   3.3V      ──┤ VIO     B2/M4 ├──┘
+   12-24V    ──┤ VM            │
+   GND       ──┤ GND           │
+                └───────────────┘
+
+  EN is wired to GND permanently — motor always energized.
+
+================================================================================
+  ENDSTOPS  (NC — Normally Closed, separate pins)
+================================================================================
+
+   Left  endstop ── one leg ── GPIO 36  (+ 10kΩ to 3.3V)
+                 └─ other leg ─ GND
+
+   Right endstop ── one leg ── GPIO 39  (+ 10kΩ to 3.3V)
+                 └─ other leg ─ GND
+
+================================================================================
+  EXTERNAL BUTTONS  (active LOW, INPUT_PULLUP)
+================================================================================
+
+   LEFT  button ── one leg ── GPIO 27 ── other leg ── GND
+   RIGHT button ── one leg ── GPIO 14 ── other leg ── GND
+   PLAY/PAUSE   ── one leg ── GPIO 12 ── other leg ── GND
+
+   SHORT press = tap action   |   HOLD (>400ms) = held action
+
+================================================================================
+  POWER SUPPLY
+================================================================================
+
+   ┌────────────────────────────────────────────────────────┐
+   │  External PSU  (12–24V DC)                             │
+   │  +V ──────────────────────────── TMC2209 VM            │
+   │  GND ─────────────────────────── TMC2209 GND           │
+   │  GND ─────────────────────────── ESP32 GND             │
+   │  GND ─────────────────────────── TMC2209 EN (tie-down) │
+   └────────────────────────────────────────────────────────┘
+
+   ESP32 powered via USB during development.
+   In standalone use: power via VIN pin (7–12V) or 5V pin.
+   Mini12864 powered from ESP32 VIN/5V rail.
+
+================================================================================
+  WIFI QUICK REFERENCE
+================================================================================
+
+   First boot / no credentials:
+     Connect to WiFi:  CameraSlider  (password: slider123)
+     Open browser  →   http://192.168.4.1/setup
+     Enter home WiFi SSID + password → device saves and restarts
+
+   After setup:
+     Web UI   →  http://<your-ip>/
+     API      →  http://<your-ip>/api/status
+
+   Reset WiFi:
+     Physical menu → WiFi Status → Reset WiFi Creds → Yes
+
+
+================================================================================
+  HANDHELD CABLE  (controller board ↔ handheld enclosure)
+================================================================================
+
+  Cable spec : 16-conductor, 28AWG, flat ribbon, 2.54mm pitch
+  Length     : 60cm
+  Connectors : 2×8 IDC (16-pin) at both ends
+                 Handheld end  — IDC female (crimped onto ribbon)
+                 PCB end       — IDC shrouded male header (soldered)
+  Strain relief: IDC clip at each end
+
+  SIGNAL INTEGRITY — fit these at the PCB/controller end of the cable:
+
+    NeoPixel data  → 470Ω resistor in series (on PCB, close to output pin)
+                     Damps reflections on the 60cm data run.
+
+    ENC_CLK        → 100nF ceramic capacitor to GND
+    ENC_DT         → 100nF ceramic capacitor to GND
+                     Prevents phantom encoder steps caused by cable noise.
+
+  WIRE ALLOCATION  (16 wires)
+
+    Wire   Signal          Direction    Notes
+    ─────  ──────────────  ───────────  ──────────────────────────────
+    1      ENC_CLK         H → PCB      Encoder channel A  (+ 100nF to GND at PCB)
+    2      ENC_DT          H → PCB      Encoder channel B  (+ 100nF to GND at PCB)
+    3      ENC_SW          H → PCB      Encoder push button
+    4      LCD_MOSI        PCB → H      SPI data
+    5      LCD_SCK         PCB → H      SPI clock
+    6      LCD_CS          PCB → H      SPI chip select
+    7      LCD_RST         PCB → H      Display reset
+    8      LCD_A0          PCB → H      Display data/command
+    9      NEOPIXEL        PCB → H      RGB backlight  (+ 470Ω series at PCB)
+    10     BTN_LEFT        H → PCB      Left jog button
+    11     BTN_RIGHT       H → PCB      Right jog button
+    12     BTN_PLAY/PAUSE  H → PCB      Play/pause button
+    13     5V              PCB → H      Logic supply for Mini12864 + encoder
+    14     GND             Common       Signal ground
+    15     GND             Common       Power return (separate for noise isolation)
+    16     (spare)         —            Reserved for future use
+
+  H = Handheld enclosure    PCB = Main controller board
+
+
+================================================================================
+  HANDHELD CABLE — OPTION B: DB15 (VGA CABLE)
+================================================================================
+
+  Cable spec : Standard VGA cable (DE-15), pre-made, 0.5m
+  Connectors : DB15 panel-mount chassis connectors at both ends
+                 Handheld end  — DB15 female chassis mount
+                 PCB end       — DB15 male chassis mount
+  Locking    : Thumbscrew or hex screw at each connector end
+  Source     : Any VGA cable 0.5m — extremely common, low cost
+
+  PIN ALLOCATION  (15 pins — pin 15 doubles as extra GND)
+
+    Pin   Signal          Direction    Notes
+    ────  ──────────────  ───────────  ──────────────────────────────
+    1     ENC_CLK         H → PCB      Encoder A  (+ 100nF to GND at PCB)
+    2     ENC_DT          H → PCB      Encoder B  (+ 100nF to GND at PCB)
+    3     ENC_SW          H → PCB      Encoder push button
+    4     LCD_MOSI        PCB → H      SPI data
+    5     LCD_SCK         PCB → H      SPI clock
+    6     LCD_CS          PCB → H      SPI chip select
+    7     LCD_RST         PCB → H      Display reset
+    8     LCD_A0          PCB → H      Display data/command
+    9     NEOPIXEL        PCB → H      RGB backlight (+ 470 Ohm series at PCB)
+    10    BTN_LEFT        H → PCB      Left jog button
+    11    BTN_RIGHT       H → PCB      Right jog button
+    12    BTN_PLAY/PAUSE  H → PCB      Play/pause button
+    13    5V              PCB → H      Logic supply for Mini12864 + encoder
+    14    GND             Common       Signal ground
+    15    GND             Common       Power return / extra GND (pin doubled)
+
+  COMPARED TO RIBBON CABLE OPTION:
+    Pro  : Pre-made cable, no crimping, locking screws, more robust connector
+    Pro  : Panel-mount connectors suit an enclosure design well
+    Con  : 15 pins vs 16 — one fewer spare wire
+    Con  : VGA cable wiring varies by manufacturer — verify continuity
+           before use (some VGA cables omit certain pins)
+    Note : Always test with a continuity checker before first use
+
+  H = Handheld enclosure    PCB = Main controller board
+
+================================================================================
+  END OF DOCUMENT
+================================================================================
+
+================================================================================
+  HANDHELD CABLE — OPTION C: DB25 (SERIAL/PARALLEL CABLE)
+================================================================================
+
+  Cable spec : DB25 straight-through serial or parallel port cable
+  Connectors : DB25 panel-mount chassis connectors at both ends
+                 Handheld end  — DB25 female chassis mount
+                 PCB end       — DB25 male chassis mount
+  Locking    : Thumbscrew or hex screw at each connector end
+  Source     : Existing stock — old PC serial or parallel port cable
+               All 25 pins are always wired in these cables (guaranteed).
+
+  ⚠  Use a STRAIGHT-THROUGH cable, not a null-modem cable.
+     Verify pin-to-pin continuity before use.
+
+  PIN ALLOCATION  (16 of 25 pins used — 9 spares)
+
+    Pin   Signal          Direction    Notes
+    ────  ──────────────  ───────────  ──────────────────────────────
+    1     ENC_CLK         H → PCB      Encoder A  (+ 100nF to GND at PCB)
+    2     ENC_DT          H → PCB      Encoder B  (+ 100nF to GND at PCB)
+    3     ENC_SW          H → PCB      Encoder push button
+    4     LCD_MOSI        PCB → H      SPI data
+    5     LCD_SCK         PCB → H      SPI clock
+    6     LCD_CS          PCB → H      SPI chip select
+    7     LCD_RST         PCB → H      Display reset
+    8     LCD_A0          PCB → H      Display data/command
+    9     NEOPIXEL        PCB → H      RGB backlight (+ 470 Ohm series at PCB)
+    10    BTN_LEFT        H → PCB      Left jog button
+    11    BTN_RIGHT       H → PCB      Right jog button
+    12    BTN_PLAY/PAUSE  H → PCB      Play/pause button
+    13    5V              PCB → H      Logic supply for Mini12864 + encoder
+    14    GND             Common       Signal ground
+    15    GND             Common       Power return
+    16    GND             Common       Extra GND (noise isolation)
+    17–25 (spare)         —            Reserved for future use
+
+  COMPARED TO OTHER OPTIONS:
+    Pro  : All 25 pins guaranteed wired — no continuity surprises
+    Pro  : Likely already in your parts bin at zero cost
+    Pro  : 9 spare wires for future expansion
+    Con  : Connector body wider than DB15 (~55mm vs ~40mm)
+
+  H = Handheld enclosure    PCB = Main controller board
+
+================================================================================
+  END OF DOCUMENT
+================================================================================

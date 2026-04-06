@@ -1,0 +1,195 @@
+================================================================================
+  CAMERA SLIDER  —  ESP32 WiFi Mod  —  PIN REFERENCE  —  v1.0-ESP32
+================================================================================
+
+  ⚠  GPIO 34, 35, 36, 39 are INPUT-ONLY on the ESP32.
+     They have NO internal pull-up resistor.
+     Wire a 10kΩ resistor from each of these pins to 3.3V.
+
+                         ESP32 DevKit v1  (38-pin)
+                    ┌─────────────────────────────┐
+                    │  EN              GPIO23/MOSI ├─ LCD MOSI   (EXP2-6)
+                    │  GPIO36/END_L*   GPIO22      │
+                    │  GPIO39/END_R*   GPIO1 (TX)  │
+                    │  GPIO34/ENC_CLK* GPIO3 (RX)  │
+                    │  GPIO35/ENC_DT*  GPIO21      │
+                    │  GPIO32/ENC_SW   GPIO19      │
+                    │  GPIO33/LCD_RST  GPIO18/SCK  ├─ LCD SCK   (EXP2-2)
+                    │  GPIO25/LCD_A0   GPIO5/LCD_CS├─ LCD CS    (EXP2-7)
+                    │  GPIO26/NEOPIX   GPIO17/DIR  ├─ TMC2209 DIR
+                    │  GPIO27/BTN_LEFT GPIO16/STEP ├─ TMC2209 STEP
+                    │  GPIO14/BTN_RIGHT GPIO4      │
+                    │  GPIO12/BTN_PLAY  GPIO2      │
+                    │  GPIO13          GPIO15      │
+                    │  GND             GND         │
+                    │  VIN             3V3         │
+                    └─────────────────────────────┘
+        * Input-only pin — 10kΩ pullup to 3.3V required
+
+================================================================================
+  COMPLETE PIN TABLE
+================================================================================
+
+  Pin      Connected To              Function
+  ───────  ────────────────────────  ─────────────────────────────────────────
+  GPIO 34  EXP2-3 ENC_CLK *         Encoder channel A  (interrupt)
+  GPIO 35  EXP2-5 ENC_DT  *         Encoder channel B
+  GPIO 32  EXP1-2 ENC_SW            Encoder push — short=select, long=E-Stop
+  GPIO 33  EXP1-3 LCD_RST           Display reset
+  GPIO 25  EXP1-4 LCD_A0            Display RS (data/command)
+  GPIO 26  EXP1-7 NeoPixel          WS2812 RGB backlight
+  GPIO 23  EXP2-6 LCD_MOSI          SPI data (software SPI)
+  GPIO 18  EXP2-2 LCD_SCK           SPI clock (software SPI)
+  GPIO  5  EXP2-7 LCD_CS            Display chip select
+  GPIO 27  LEFT jog button           Short=1mm step left, hold=fast jog
+  GPIO 14  RIGHT jog button          Short=1mm step right, hold=fast jog
+  GPIO 12  PLAY/PAUSE button         Short=start/pause/resume, hold=cancel
+  GPIO 36  Left endstop (NC)  *      Left limit switch
+  GPIO 39  Right endstop (NC) *      Right limit switch
+  GPIO 16  TMC2209 STEP              Stepper step pulse
+  GPIO 17  TMC2209 DIR               Stepper direction
+  GND      TMC2209 EN                Always enabled (tied to GND)
+
+  * Requires external 10kΩ pull-up resistor to 3.3V
+
+================================================================================
+  MINI12864 EXP1 CONNECTOR
+================================================================================
+
+  EXP1 Pin   Signal       ESP32 Pin   Function
+  ─────────  ───────────  ─────────   ────────────────────────────────────────
+  1          BEEPER       —           Not connected
+  2          BTN_ENC      GPIO 32     Encoder push (select / E-Stop)
+  3          LCD_RST      GPIO 33     Display reset
+  4          LCD_A0/RS    GPIO 25     Data / command select
+  5          —            —           Not connected
+  6          —            —           Not connected
+  7          NEOPIXEL     GPIO 26     WS2812 RGB backlight
+  8          GND          GND         Ground
+  9          —            —           Not connected
+  10         5V           5V (VIN)    Logic supply
+
+================================================================================
+  MINI12864 EXP2 CONNECTOR
+================================================================================
+
+  EXP2 Pin   Signal       ESP32 Pin   Function
+  ─────────  ───────────  ─────────   ────────────────────────────────────────
+  1          MISO         —           Not connected (software SPI)
+  2          SCK          GPIO 18     SPI clock
+  3          ENC_CLK      GPIO 34     Encoder channel A  (+ 10k pullup)
+  4          SD_CS        —           Not connected
+  5          ENC_DT       GPIO 35     Encoder channel B  (+ 10k pullup)
+  6          MOSI         GPIO 23     SPI data
+  7          LCD_CS       GPIO 5      Chip select
+  8          GND          GND         Ground
+  9          NC           —           Not connected
+  10         5V           —           Not connected (via EXP1-10)
+
+================================================================================
+  NEOPIXEL BACKLIGHT COLOURS
+================================================================================
+
+  State              Colour    R    G    B
+  ─────────────────  ────────  ───  ───  ───
+  Idle / menu        Green       0  180    0
+  WiFi connecting    Cyan        0  120  200
+  Program running    Blue        0    0  180
+  Paused             Amber     200  120    0
+  Homing             White     200  200  200
+  E-Stop             Red       255    0    0
+
+================================================================================
+  WIFI BEHAVIOUR
+================================================================================
+
+  Boot sequence:
+    1. Load saved WiFi credentials from flash (Preferences/NVS)
+    2. If credentials exist → connect to home network (10 second timeout)
+    3. If connected → Station mode, web UI at http://<assigned IP>
+    4. If not connected → Access Point mode
+         SSID:     CameraSlider
+         Password: slider123
+         IP:       192.168.4.1
+         Opens captive portal at http://192.168.4.1/setup
+
+  Captive portal:
+    Connect phone/PC to "CameraSlider" WiFi, browser opens automatically.
+    Enter home WiFi SSID and password, device saves and restarts.
+
+  Reset WiFi credentials:
+    Physical menu → WiFi Status → Reset WiFi Creds → Yes
+    Or via API: POST /api/wifi with new credentials
+
+  Web UI:   http://<ip>/
+  REST API: http://<ip>/api/...
+
+================================================================================
+  REST API ENDPOINTS
+================================================================================
+
+  GET  /api/status       Position, state, program, loop, WiFi info
+  POST /api/home         Trigger homing sequence
+  POST /api/start        Start selected program
+  POST /api/stop         Stop running program
+  POST /api/pause        Pause running program
+  POST /api/resume       Resume paused program
+  POST /api/estop        Emergency stop
+  POST /api/jog          Body: {"dir":"left"|"right","fast":0|1}
+  POST /api/jog/stop     Stop jog motion
+  POST /api/select       Body: {"slot":0-5}  (4=FullLoop, 5=ToEndpoint)
+  POST /api/fullloop     Body: {"speed":mm/s,"loops":count}
+  POST /api/wifi         Body: {"ssid":"...","pass":"..."} — saves and restarts
+
+================================================================================
+  LIBRARIES REQUIRED
+================================================================================
+
+  Library               Install via          Notes
+  ─────────────────────────────────────────────────────────────────────────────
+  U8g2                  Library Manager      Display driver
+  AccelStepper          Library Manager      Motor control
+  Adafruit NeoPixel     Library Manager      RGB backlight
+  ArduinoJson           Library Manager      v6.x — REST API
+  ESPAsyncWebServer     Library Manager      Non-blocking web server
+  AsyncTCP              Library Manager      Required by ESPAsyncWebServer
+
+  Built-in (ESP32 Arduino core — no install):
+    WiFi, DNSServer, Preferences, SPI
+
+  Board: "ESP32 Dev Module" in Arduino IDE
+  Board Manager URL: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+================================================================================
+  WHAT CHANGED FROM 12864-SCREEN-MOD
+================================================================================
+
+  Item                  12864-screen-mod        ESP32 WiFi Mod
+  ─────────────────────────────────────────────────────────────────────────────
+  Microcontroller       Arduino Uno             ESP32 DevKit v1 (38-pin)
+  WiFi                  None (IR remote)        Built-in, station + AP fallback
+  IR remote             Required                Not used (replaced by WiFi)
+  Web UI                None                    Full control at http://<ip>/
+  REST API              None                    Full API at http://<ip>/api/
+  Persistence           None (stubs only)       Preferences (NVS flash)
+  Endstops              Both on D12 (parallel)  Separate pins GPIO36 + GPIO39
+  Encoder CLK/DT        D2/D3 (internal pullup) GPIO34/35 (ext pullup needed)
+  Motor EN              A2                      GND (permanent)
+  RAM                   2 KB                    520 KB
+  CPU cores             1                       2 (Core 0=WiFi, Core 1=motor)
+
+================================================================================
+  FIRMWARE FILES
+================================================================================
+
+  esp32-wifi-mod/
+  ├── esp32-wifi-mod.ino       Main firmware
+  ├── esp32-pin-reference.txt  This file
+  ├── esp32-wiring.txt         ASCII wiring diagram
+  ├── esp32-bom.xlsx           Bill of materials
+  └── IR_Learn/
+      └── IR_Learn.ino        (kept for reference — not used in this fork)
+
+================================================================================
+  END OF DOCUMENT
+================================================================================
