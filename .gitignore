@@ -1,0 +1,16 @@
+# Arduino build output
+build/
+*.elf
+*.hex
+*.bin
+*.map
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Office lock files
+~$*.xlsx
